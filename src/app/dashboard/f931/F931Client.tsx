@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatPeriodo } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import F931PDFButton from './F931PDFButton'
 
 interface Props {
   company: Record<string, unknown> | null
@@ -130,7 +131,10 @@ export default function F931Client({ company, closedRuns, existingReports, userI
               <h3 className="font-bold text-slate-800">F.931 — {formatPeriodo(report.periodo as string)}</h3>
               <p className="text-xs text-slate-500">CUIT: {report.cuit_empresa as string} · {report.razon_social as string}</p>
             </div>
-            <StatusBadge status={report.status as string} reportId={report.id as string} />
+            <div className="flex items-center gap-2">
+              <F931PDFButton report={report} company={company as Record<string, unknown>} />
+              <StatusBadge status={report.status as string} reportId={report.id as string} />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
