@@ -25,13 +25,28 @@ export default function Sidebar() {
   return (
     <aside className="w-56 bg-white border-r border-slate-200 flex flex-col h-full shrink-0">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-slate-200 flex items-center gap-2.5">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-xs">S360</span>
+      <div className="px-4 py-5 border-b border-slate-100 flex items-center gap-3">
+        {/* Logotipo SVG */}
+        <div className="shrink-0">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Sueldos 360">
+            <rect width="36" height="36" rx="10" fill="url(#grad)"/>
+            <defs>
+              <linearGradient id="grad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#2563eb"/>
+                <stop offset="1" stopColor="#1d4ed8"/>
+              </linearGradient>
+            </defs>
+            {/* Símbolo $ estilizado */}
+            <text x="18" y="15" textAnchor="middle" fill="rgba(255,255,255,0.35)" fontSize="13" fontFamily="system-ui" fontWeight="700">$</text>
+            {/* Arc superior — representa el 360° */}
+            <path d="M10 18 A8 8 0 0 1 26 18" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+            {/* Texto 360 */}
+            <text x="18" y="27" textAnchor="middle" fill="white" fontSize="9.5" fontFamily="system-ui" fontWeight="800" letterSpacing="-0.3">360</text>
+          </svg>
         </div>
-        <div>
-          <p className="font-bold text-slate-800 text-sm leading-none">Sueldos 360</p>
-          <p className="text-xs text-slate-400 leading-none mt-0.5">Simulador educativo</p>
+        <div className="min-w-0">
+          <p className="font-extrabold text-slate-800 text-[14px] leading-none tracking-tight">Sueldos <span className="text-blue-600">360</span></p>
+          <p className="text-[10px] text-slate-400 leading-none mt-1 font-medium tracking-wide uppercase">Simulador educativo</p>
         </div>
       </div>
 
@@ -59,9 +74,21 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-3 border-t border-slate-200">
-        <p className="text-[10px] text-slate-400 text-center leading-relaxed">
-          Simulador educativo · No es sistema oficial ARCA
+      <div className="px-3 py-3 border-t border-slate-100 space-y-1.5">
+        <Link
+          href="/dashboard/acerca"
+          className={cn(
+            'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+            pathname === '/dashboard/acerca'
+              ? 'bg-blue-50 text-blue-700'
+              : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+          )}
+        >
+          <span>ℹ️</span>
+          <span>Acerca · Bases y condiciones</span>
+        </Link>
+        <p className="text-[9px] text-slate-300 text-center leading-relaxed px-2">
+          Simulador educativo · No reemplaza sistemas oficiales ARCA
         </p>
       </div>
     </aside>

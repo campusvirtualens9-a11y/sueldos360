@@ -6,10 +6,19 @@ export default function HomePage() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">S360</span>
-          </div>
-          <span className="font-bold text-slate-800 text-lg">Sueldos 360</span>
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="36" height="36" rx="10" fill="url(#grad-home)"/>
+            <defs>
+              <linearGradient id="grad-home" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#2563eb"/>
+                <stop offset="1" stopColor="#1d4ed8"/>
+              </linearGradient>
+            </defs>
+            <text x="18" y="15" textAnchor="middle" fill="rgba(255,255,255,0.35)" fontSize="13" fontFamily="system-ui" fontWeight="700">$</text>
+            <path d="M10 18 A8 8 0 0 1 26 18" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+            <text x="18" y="27" textAnchor="middle" fill="white" fontSize="9.5" fontFamily="system-ui" fontWeight="800" letterSpacing="-0.3">360</text>
+          </svg>
+          <span className="font-extrabold text-slate-800 text-lg tracking-tight">Sueldos <span className="text-blue-600">360</span></span>
         </div>
         <div className="flex gap-3">
           <Link href="/auth/login" className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">
