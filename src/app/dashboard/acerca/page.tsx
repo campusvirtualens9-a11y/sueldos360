@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 export default function AcercaPage() {
   return (
     <div className="max-w-3xl mx-auto pb-12">
@@ -23,9 +25,9 @@ export default function AcercaPage() {
           <span className="text-blue-600">📘</span> ¿Qué es Sueldos 360?
         </h2>
         <p className="text-sm text-slate-600 leading-relaxed mb-3">
-          <strong>Sueldos 360</strong> es una aplicación web educativa diseñada para que estudiantes de escuelas técnicas
-          con orientación en <strong>Gestión y Administración de las Organizaciones (GAO)</strong> practiquen el circuito
-          completo de liquidación de sueldos y jornales en Argentina.
+          <strong>Sueldos 360</strong> es una aplicación web educativa diseñada para practicar el circuito
+          completo de liquidación de sueldos y jornales en Argentina, con orientación en
+          <strong> Gestión y Administración de las Organizaciones (GAO)</strong>.
         </p>
         <p className="text-sm text-slate-600 leading-relaxed">
           La app simula el proceso real: alta de empresa, legajos de empleados, aplicación de convenios colectivos de trabajo (CCT),
@@ -34,10 +36,10 @@ export default function AcercaPage() {
         </p>
       </section>
 
-      {/* Sección: Referencias institucionales */}
+      {/* Sección: Referencias normativas */}
       <section className="card mb-6">
         <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <span className="text-blue-600">🏛️</span> Referencias institucionales y normativa aplicable
+          <span className="text-blue-600">🏛️</span> Referencias normativas aplicables
         </h2>
         <div className="space-y-4">
           <div className="border-l-4 border-blue-500 pl-4">
@@ -101,7 +103,7 @@ export default function AcercaPage() {
             <span className="text-blue-500 font-bold shrink-0 mt-0.5">2.</span>
             <p><strong>Límites del simulador.</strong> Cada usuario puede crear hasta <strong>2 empresas</strong> con
             hasta <strong>10 empleados activos</strong> por empresa. Estos límites son intencionales para preservar
-            los recursos educativos compartidos.</p>
+            los recursos del servicio.</p>
           </div>
           <div className="flex gap-3">
             <span className="text-blue-500 font-bold shrink-0 mt-0.5">3.</span>
@@ -117,43 +119,56 @@ export default function AcercaPage() {
           </div>
           <div className="flex gap-3">
             <span className="text-blue-500 font-bold shrink-0 mt-0.5">5.</span>
-            <p><strong>Propiedad intelectual.</strong> El software Sueldos 360 fue desarrollado con fines académicos.
-            Queda prohibida su comercialización, distribución o uso fuera del ámbito educativo sin autorización expresa.</p>
+            <p><strong>Propiedad intelectual.</strong> El software Sueldos 360 fue desarrollado por su autor.
+            Queda prohibida su comercialización o distribución sin autorización expresa.</p>
           </div>
           <div className="flex gap-3">
             <span className="text-blue-500 font-bold shrink-0 mt-0.5">6.</span>
-            <p><strong>Disponibilidad.</strong> El servicio se provee "tal como está" sin garantías de disponibilidad
-            continua. Los datos pueden eliminarse al finalizar el ciclo lectivo.</p>
+            <p><strong>Disponibilidad.</strong> El servicio se provee "tal como está" sin garantías de disponibilidad continua.</p>
           </div>
         </div>
       </section>
 
-      {/* Sección: Créditos */}
-      <section className="card mb-6">
-        <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <span className="text-blue-600">🎓</span> Créditos y agradecimientos
+      {/* Sección: Créditos personales */}
+      <section className="card mb-6 overflow-hidden">
+        <h2 className="text-base font-bold text-slate-800 mb-5 flex items-center gap-2">
+          <span className="text-blue-600">👤</span> Autor
         </h2>
-        <div className="grid sm:grid-cols-2 gap-4 text-sm">
-          <div className="bg-slate-50 rounded-xl p-4">
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Institución educativa</div>
-            <div className="font-semibold text-slate-700">Escuela Técnica N° 9</div>
-            <div className="text-xs text-slate-500 mt-0.5">Modalidad: Gestión y Administración de las Organizaciones (GAO)</div>
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          {/* Foto */}
+          <div className="shrink-0">
+            <div className="w-28 h-28 rounded-2xl overflow-hidden ring-4 ring-blue-100 shadow-md">
+              <Image
+                src="/foto-perfil.png"
+                alt="Juan Manuel Gómez"
+                width={112}
+                height={112}
+                className="object-cover w-full h-full"
+                priority
+              />
+            </div>
           </div>
-          <div className="bg-slate-50 rounded-xl p-4">
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Materia</div>
-            <div className="font-semibold text-slate-700">Recursos Humanos / Liquidación de Sueldos</div>
-            <div className="text-xs text-slate-500 mt-0.5">Aplicación práctica del circuito de haberes</div>
+          {/* Info */}
+          <div className="flex-1 text-center sm:text-left">
+            <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Juan Manuel Gómez</h3>
+            <p className="text-sm text-blue-600 font-semibold mt-0.5">Desarrollador · Docente</p>
+            <p className="text-sm text-slate-500 mt-3 leading-relaxed">
+              Diseñó y desarrolló <strong>Sueldos 360</strong> como herramienta educativa para la enseñanza
+              práctica del proceso de liquidación de sueldos en Argentina, integrando normativa laboral vigente,
+              convenios colectivos reales y tecnología web moderna.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-4 justify-center sm:justify-start">
+              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 font-medium">Next.js 16</span>
+              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 font-medium">TypeScript</span>
+              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 font-medium">Supabase</span>
+              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 font-medium">PostgreSQL</span>
+              <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 rounded-full px-3 py-1 font-medium">Liquidación de sueldos ARG</span>
+            </div>
           </div>
-          <div className="bg-slate-50 rounded-xl p-4">
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Tecnología</div>
-            <div className="font-semibold text-slate-700">Next.js 16 · TypeScript · Supabase</div>
-            <div className="text-xs text-slate-500 mt-0.5">Stack moderno de desarrollo web full-stack</div>
-          </div>
-          <div className="bg-slate-50 rounded-xl p-4">
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Versión</div>
-            <div className="font-semibold text-slate-700">1.0.0 · Junio 2026</div>
-            <div className="text-xs text-slate-500 mt-0.5">Datos de convenio: referencia junio 2026</div>
-          </div>
+        </div>
+        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+          <span>Versión 1.0.0</span>
+          <span>Junio 2026 · Datos de CCT de referencia junio 2026</span>
         </div>
       </section>
 
