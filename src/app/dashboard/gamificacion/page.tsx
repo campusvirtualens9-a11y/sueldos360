@@ -166,11 +166,12 @@ export default async function GamificacionPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         {(Object.entries(ACHIEVEMENT_DEFS) as [string, { nombre: string; descripcion: string; icono: string }][]).map(([codigo, def]) => {
           const unlockedAt = unlockedMap.get(codigo)
+          const esExamen = codigo === 'EXAMEN_APROBADO'
           return (
             <div key={codigo}
-              className={`card flex items-start gap-3 transition-opacity ${unlockedAt ? '' : 'opacity-40'}`}>
+              className={`card flex items-start gap-3 transition-opacity ${unlockedAt ? '' : 'opacity-40'} ${esExamen && unlockedAt ? 'border-amber-300 bg-amber-50/40' : ''}`}>
               <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0 ${
-                unlockedAt ? 'bg-green-50' : 'bg-slate-100'
+                unlockedAt ? (esExamen ? 'bg-amber-100' : 'bg-green-50') : 'bg-slate-100'
               }`}>
                 {def.icono}
               </div>
@@ -187,6 +188,36 @@ export default async function GamificacionPage() {
           )
         })}
       </div>
+
+      {/* Examen final */}
+      {unlockedMap.has('CIRCUITO_COMPLETO') && (
+        <div className={`card mb-6 ${unlockedMap.has('EXAMEN_APROBADO') ? 'border-amber-300 bg-amber-50/30' : ''}`}>
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-3xl">{unlockedMap.has('EXAMEN_APROBADO') ? '🏆' : '🎓'}</span>
+            <div>
+              <h2 className="text-base font-semibold text-slate-800">Examen final de conocimientos</h2>
+              <p className="text-xs text-slate-500">
+                {unlockedMap.has('EXAMEN_APROBADO')
+                  ? 'Examen aprobado — sos Experto en Liquidación de Sueldos'
+                  : '8 preguntas sobre liquidación de sueldos · Mínimo 6 correctas para aprobar'}
+              </p>
+            </div>
+          </div>
+          {unlockedMap.has('EXAMEN_APROBADO') ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-center">
+              <p className="text-amber-800 font-semibold text-sm">🎓 ¡Felicitaciones! Completaste el circuito y aprobaste el examen.</p>
+              <Link href="/dashboard/gamificacion/examen" className="text-xs text-amber-700 underline mt-1 block">Ver diploma →</Link>
+            </div>
+          ) : (
+            <Link
+              href="/dashboard/gamificacion/examen"
+              className="block w-full bg-blue-600 text-white text-center font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              Rendir examen →
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="edu-banner text-xs">
         <strong>Gamificación educativa:</strong> Los logros se desbloquean automáticamente al completar

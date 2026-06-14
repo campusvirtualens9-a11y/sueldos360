@@ -11,6 +11,7 @@ export const ACHIEVEMENT_DEFS = {
   PRIMER_EXPORT:       { nombre: 'Primer export',        descripcion: 'Exportaste el libro de trabajo a Excel',               icono: '📤' },
   REPORTE_REVISADO:    { nombre: 'Reportes revisados',   descripcion: 'Analizaste los reportes del período',                  icono: '📈' },
   CIRCUITO_COMPLETO:   { nombre: '¡Circuito completo!',  descripcion: 'Completaste los 10 pasos del circuito de liquidación', icono: '🏆' },
+  EXAMEN_APROBADO:     { nombre: 'Experto en liquidación', descripcion: 'Aprobaste el examen final de conocimientos sobre liquidación de sueldos', icono: '🎓' },
 } as const
 
 export type AchievementCode = keyof typeof ACHIEVEMENT_DEFS
