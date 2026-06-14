@@ -50,10 +50,48 @@ export default async function DashboardPage() {
 
   const periodo = getCurrentPeriodo()
 
-  // Calcular progreso del circuito (simplificado)
-  let stepsCompleted = 0
-  if (company) stepsCompleted++
-  if (employeeCount && employeeCount > 0) stepsCompleted += 2
+  const [
+    { count: empWithAgreement },
+    { count: novCount },
+    { count: payslipCount },
+    { count: f931Count },
+    { data: circuitAchievements },
+  ] = await (company
+    ? Promise.all([
+        supabase.from('employees').select('*', { count: 'exact', head: true })
+          .eq('company_id', company.id).eq('status', 'activo').not('agreement_id', 'is', null),
+        supabase.from('monthly_novelties').select('*', { count: 'exact', head: true })
+          .eq('company_id', company.id).eq('periodo', periodo),
+        supabase.from('payslips').select('*', { count: 'exact', head: true })
+          .eq('company_id', company.id).eq('emitido', true),
+        supabase.from('f931_reports').select('*', { count: 'exact', head: true })
+          .eq('company_id', company.id),
+        supabase.from('achievements').select('codigo').eq('user_id', user!.id),
+      ])
+    : Promise.all([
+        Promise.resolve({ count: 0 }),
+        Promise.resolve({ count: 0 }),
+        Promise.resolve({ count: 0 }),
+        Promise.resolve({ count: 0 }),
+        Promise.resolve({ data: [] as { codigo: string }[] }),
+      ]))
+
+  const achievementCodes = new Set((circuitAchievements ?? []).map((a: { codigo: string }) => a.codigo))
+
+  const stepsDone = [
+    !!company,
+    (empWithAgreement ?? 0) > 0,
+    !!company,
+    (employeeCount ?? 0) > 0,
+    (novCount ?? 0) > 0,
+    (lastPayrolls?.length ?? 0) > 0,
+    (payslipCount ?? 0) > 0,
+    achievementCodes.has('LIBRO_GENERADO'),
+    (f931Count ?? 0) > 0,
+    achievementCodes.has('REPORTE_REVISADO'),
+  ]
+
+  const stepsCompleted = stepsDone.filter(Boolean).length
   const progressPct = Math.round((stepsCompleted / CIRCUIT_STEPS.length) * 100)
 
   // Alertas
@@ -123,7 +161,7 @@ export default async function DashboardPage() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {CIRCUIT_STEPS.map((step, i) => {
-            const done = i < stepsCompleted
+            const done = stepsDone[i]
             return (
               <Link key={step.id} href={step.href}
                 className={`p-2 rounded-lg border text-center text-xs transition-colors ${

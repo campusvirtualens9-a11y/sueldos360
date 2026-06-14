@@ -17,6 +17,7 @@ const nav = [
   { href: '/dashboard/f931', label: 'F.931 Simulado', icon: '📊' },
   { href: '/dashboard/reportes', label: 'Reportes', icon: '📈' },
   { href: '/dashboard/exportaciones', label: 'Exportaciones', icon: '📤' },
+  { href: '/dashboard/gamificacion', label: 'Mis logros', icon: '🏆' },
 ]
 
 export default function Sidebar() {

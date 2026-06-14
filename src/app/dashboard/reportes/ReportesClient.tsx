@@ -1,6 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import { formatCurrency, formatPeriodo } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import { unlockAchievement } from '@/lib/achievements'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -14,6 +17,17 @@ interface Props {
 const COLORS = ['#2563eb', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6']
 
 export default function ReportesClient({ company, payrollRuns }: Props) {
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (company && payrollRuns.length > 0) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) unlockAchievement(supabase, user.id, company.id, 'REPORTE_REVISADO')
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   if (!company) {
     return (
       <div className="max-w-4xl mx-auto">

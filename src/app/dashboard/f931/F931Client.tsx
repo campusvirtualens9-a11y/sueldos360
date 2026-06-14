@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatPeriodo } from '@/lib/utils'
+import { unlockAchievement } from '@/lib/achievements'
 import { useRouter } from 'next/navigation'
 import F931PDFButton from './F931PDFButton'
 
@@ -63,6 +64,8 @@ export default function F931Client({ company, closedRuns, existingReports, userI
       total_general,
       status: 'borrador',
     }])
+
+    await unlockAchievement(supabase, userId, (company as Record<string, unknown>).id as string, 'F931_GENERADO')
 
     setGenerating(false)
     router.refresh()

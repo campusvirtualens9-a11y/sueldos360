@@ -22,5 +22,5 @@ export default async function ExportacionesPage() {
         .eq('company_id', company.id).order('periodo', { ascending: false })
     : { data: [] }
 
-  return <ExportacionesClient company={company} employees={employees || []} payrollRuns={payrollRuns || []} />
+  return <ExportacionesClient company={company} employees={employees || []} payrollRuns={payrollRuns || []} userId={user!.id} />
 }

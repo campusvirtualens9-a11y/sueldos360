@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { unlockAchievement } from '@/lib/achievements'
 import Link from 'next/link'
 
 interface Agreement { id: string; nombre: string; numero_cct: string }
@@ -98,6 +99,8 @@ export default function NuevoEmpleadoPage() {
 
     if (emp) {
       await supabase.from('employee_files').insert([{ employee_id: emp.id }])
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) await unlockAchievement(supabase, user.id, company.id, 'PRIMER_EMPLEADO')
     }
 
     router.push('/dashboard/legajos')

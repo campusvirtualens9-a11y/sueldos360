@@ -1,6 +1,8 @@
 'use client'
 
 import { formatCurrency, formatPeriodo } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import { unlockAchievement } from '@/lib/achievements'
 
 interface Props {
   run: Record<string, unknown>
@@ -9,6 +11,15 @@ interface Props {
 }
 
 export default function LibroExportButton({ run, company, results }: Props) {
+  const supabase = createClient()
+
+  async function trackLibro() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user && company?.id) {
+      await unlockAchievement(supabase, user.id, company.id as string, 'LIBRO_GENERADO')
+    }
+  }
+
   async function exportCSV() {
     const header = ['Empleado','CUIL','Días','Remunerativo','No Remunerativo','Descuentos','Neto','Aportes','Contribuciones','Costo Laboral']
     const rows = results.map(r => {
@@ -34,6 +45,7 @@ export default function LibroExportButton({ run, company, results }: Props) {
     link.download = `libro-sueldos-${run.periodo}-${company.cuit}.csv`
     link.click()
     URL.revokeObjectURL(url)
+    await trackLibro()
   }
 
   async function exportPDF() {
@@ -73,6 +85,7 @@ export default function LibroExportButton({ run, company, results }: Props) {
     doc.setFontSize(8)
     doc.text('⚠ Simulación educativa — Sueldos 360 — No reemplaza el Libro de Sueldos oficial', 148, 200, { align: 'center' })
     doc.save(`libro-sueldos-${run.periodo}-${company.cuit}.pdf`)
+    await trackLibro()
   }
 
   return (

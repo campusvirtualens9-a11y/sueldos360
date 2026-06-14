@@ -2,14 +2,18 @@
 
 import { formatPeriodo } from '@/lib/utils'
 import * as XLSX from 'xlsx'
+import { createClient } from '@/lib/supabase/client'
+import { unlockAchievement } from '@/lib/achievements'
 
 interface Props {
   company: Record<string, unknown> | null
   employees: Record<string, unknown>[]
   payrollRuns: Record<string, unknown>[]
+  userId: string
 }
 
-export default function ExportacionesClient({ company, employees, payrollRuns }: Props) {
+export default function ExportacionesClient({ company, employees, payrollRuns, userId }: Props) {
+  const supabase = createClient()
   function downloadCSV(filename: string, headers: string[], rows: (string | number | null | undefined)[][]) {
     const csv = [headers, ...rows].map(r => r.map(c => `"${c ?? ''}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -42,7 +46,7 @@ export default function ExportacionesClient({ company, employees, payrollRuns }:
     )
   }
 
-  function exportLibroXLSX() {
+  async function exportLibroXLSX() {
     const wb = XLSX.utils.book_new()
 
     // Hoja 1: Nómina
@@ -88,6 +92,10 @@ export default function ExportacionesClient({ company, employees, payrollRuns }:
 
     const empresa = (company?.razon_social as string || 'empresa').replace(/\s/g, '-')
     XLSX.writeFile(wb, `libro-sueldos-${empresa}.xlsx`)
+
+    if (company?.id) {
+      await unlockAchievement(supabase, userId, company.id as string, 'PRIMER_EXPORT')
+    }
   }
 
   function exportBackupJSON() {

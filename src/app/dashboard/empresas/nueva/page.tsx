@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { unlockAchievement } from '@/lib/achievements'
 import Link from 'next/link'
 
 const PROVINCIAS = [
@@ -93,6 +94,7 @@ export default function NuevaEmpresaPage() {
         { company_id: data.id, codigo: 'HORA_EXTRA_50', nombre: 'Factor hora extra 50%', valor: 1.5, categoria: 'parametros_jornada', descripcion: 'Multiplicador para hora extra al 50%', fuente: 'LCT art. 201' },
         { company_id: data.id, codigo: 'HORA_EXTRA_100', nombre: 'Factor hora extra 100%', valor: 2, categoria: 'parametros_jornada', descripcion: 'Multiplicador para hora extra al 100%', fuente: 'LCT art. 201' },
       ])
+      await unlockAchievement(supabase, user.id, data.id, 'PRIMERA_EMPRESA')
     }
 
     router.push('/dashboard/empresas')

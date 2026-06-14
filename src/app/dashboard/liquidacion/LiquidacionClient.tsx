@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { calcularLiquidacion } from '@/lib/calculations/payroll'
 import { formatCurrency, formatPeriodo, calcularAntiguedadAnios } from '@/lib/utils'
+import { unlockAchievement } from '@/lib/achievements'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -269,6 +270,16 @@ export default function LiquidacionClient({ company, employees, novelties, payro
           fecha_pago: new Date().toISOString().split('T')[0],
         }])
       }
+    }
+
+    const companyId = (company as Record<string, unknown>).id as string
+    await unlockAchievement(supabase, userId, companyId, 'PRIMERA_LIQUIDACION')
+
+    const uniqueCCTs = new Set(
+      employees.filter(e => e.agreement_id).map(e => e.agreement_id as string)
+    )
+    if (uniqueCCTs.size >= 3) {
+      await unlockAchievement(supabase, userId, companyId, 'MULTICONVENIO')
     }
 
     setClosing(false)
