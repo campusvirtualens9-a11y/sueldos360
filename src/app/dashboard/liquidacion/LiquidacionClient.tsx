@@ -14,9 +14,10 @@ interface Props {
   payrollRuns: Record<string, unknown>[]
   periodo: string
   userId: string
+  additionals: Record<string, unknown>[]
 }
 
-export default function LiquidacionClient({ company, employees, novelties, payrollRuns, periodo, userId }: Props) {
+export default function LiquidacionClient({ company, employees, novelties, payrollRuns, periodo, userId, additionals }: Props) {
   const supabase = createClient()
   const router = useRouter()
   const [tipo, setTipo] = useState<'mensual' | 'quincenal' | 'sac' | 'vacaciones'>('mensual')
@@ -24,6 +25,7 @@ export default function LiquidacionClient({ company, employees, novelties, payro
   const [preview, setPreview] = useState<Record<string, unknown>[] | null>(null)
   const [closing, setClosing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [warnings, setWarnings] = useState<string[]>([])
 
   const noveltyMap = Object.fromEntries((novelties as Record<string, unknown>[]).map(n => [n.employee_id as string, n]))
   const params = (company as Record<string, unknown> | null)?.legal_parameters as Record<string, unknown>[] | undefined || []
@@ -33,22 +35,44 @@ export default function LiquidacionClient({ company, employees, novelties, payro
     return p ? (p.valor as number) : defaultVal
   }
 
-  function buildPayrollParams() {
+  // Buscar adicionales de un convenio por nombre (alimentacion, complemento, fondo de cese)
+  function getAdditional(agreementId: string, keyword: string): number {
+    const match = additionals.find(
+      a => a.agreement_id === agreementId && String(a.nombre).toLowerCase().includes(keyword.toLowerCase())
+    )
+    return match ? (match.valor as number) || 0 : 0
+  }
+
+  function buildPayrollParams(agreement: Record<string, unknown> | null) {
+    // Tipo de liquidación del CCT determina el divisor y las horas
+    const tipoLiq = (agreement?.tipo_liquidacion as string) || 'mensual'
+    const modalidad: 'mensualizado' | 'jornalizado' | 'quincenal' =
+      tipoLiq === 'jornal' ? 'jornalizado' : tipoLiq === 'quincenal' ? 'quincenal' : 'mensualizado'
+
+    // Horas del CCT (Construcción: 176, resto: 200)
+    const horas = (agreement?.jornada_estandar_horas as number) || getParam('HORAS_MENSUALES', 200)
+
+    // Aporte sindical desde el CCT, fallback parámetros empresa
+    const sindical = (agreement?.aporte_sindical_porcentaje as number) ?? getParam('SINDICAL_PCT', 2)
+
     return {
-      jubilacion_pct: getParam('JUBILACION_PCT', 11),
-      obra_social_pct: getParam('OBRA_SOCIAL_PCT', 3),
-      pami_pct: getParam('PAMI_PCT', 3),
-      sindical_pct: getParam('SINDICAL_PCT', 2),
-      jubilacion_patronal_pct: getParam('JUB_PATRONAL_PCT', 16),
-      obra_social_patronal_pct: getParam('OS_PATRONAL_PCT', 6),
-      pami_patronal_pct: getParam('PAMI_PATRONAL_PCT', 2),
-      fne_pct: getParam('FNE_PCT', 1.5),
-      art_pct: getParam('ART_PCT', 1.5),
-      dias_base: getParam('DIAS_BASE', 30),
-      horas_mensuales: getParam('HORAS_MENSUALES', 200),
-      hora_extra_50_factor: getParam('HORA_EXTRA_50', 1.5),
-      hora_extra_100_factor: getParam('HORA_EXTRA_100', 2),
-      valor_hora_extra_base: 'basico',
+      modalidad,
+      params: {
+        jubilacion_pct: getParam('JUBILACION_PCT', 11),
+        obra_social_pct: getParam('OBRA_SOCIAL_PCT', 3),
+        pami_pct: getParam('PAMI_PCT', 3),
+        sindical_pct: sindical,
+        jubilacion_patronal_pct: getParam('JUB_PATRONAL_PCT', 16),
+        obra_social_patronal_pct: getParam('OS_PATRONAL_PCT', 6),
+        pami_patronal_pct: getParam('PAMI_PATRONAL_PCT', 2),
+        fne_pct: getParam('FNE_PCT', 1.5),
+        art_pct: getParam('ART_PCT', 1.5),
+        dias_base: getParam('DIAS_BASE', 30),
+        horas_mensuales: horas,
+        hora_extra_50_factor: getParam('HORA_EXTRA_50', 1.5),
+        hora_extra_100_factor: getParam('HORA_EXTRA_100', 2),
+        valor_hora_extra_base: 'basico',
+      }
     }
   }
 
@@ -56,8 +80,9 @@ export default function LiquidacionClient({ company, employees, novelties, payro
     if (!company) return
     setCalculating(true)
     setError(null)
+    setWarnings([])
 
-    const payrollParams = buildPayrollParams()
+    const warn: string[] = []
     const results = []
 
     for (const emp of employees) {
@@ -68,12 +93,36 @@ export default function LiquidacionClient({ company, employees, novelties, payro
       const sueldo = (category?.sueldo_basico as number) || (emp.sueldo_basico as number) || 0
       const antiguedadAnios = calcularAntiguedadAnios(emp.fecha_ingreso as string)
 
+      // Validaciones por empleado
+      if (!emp.agreement_id) {
+        warn.push(`${emp.apellido}, ${emp.nombre}: sin convenio asignado`)
+      }
+      if (!emp.agreement_category_id && !sueldo) {
+        warn.push(`${emp.apellido}, ${emp.nombre}: sin categoría ni básico`)
+      }
+      if (sueldo === 0) {
+        warn.push(`${emp.apellido}, ${emp.nombre}: básico $0 — verificar categoría del CCT`)
+      }
+
+      const agreementId = emp.agreement_id as string | null
+      const { modalidad, params: payrollParams } = buildPayrollParams(agreement)
+
+      // Adicionales CCT específicos (Gastronomía)
+      const alimentacion_pct = agreementId ? getAdditional(agreementId, 'alimentaci') : 0
+      const complemento_servicio_pct = agreementId ? getAdditional(agreementId, 'complemento') : 0
+
+      // Fondo de Cese Laboral — Construcción: 12% primer año, 8% desde segundo
+      let fondo_cese_pct = 0
+      if (agreement && (agreement.codigo as string)?.startsWith('CON-')) {
+        fondo_cese_pct = antiguedadAnios < 1 ? 12 : 8
+      }
+
       const result = calcularLiquidacion({
         sueldo_basico: sueldo,
         antiguedad_anios: antiguedadAnios,
         antiguedad_pct: (agreement?.antiguedad_porcentaje as number) || 1,
         presentismo_pct: (agreement?.presentismo_porcentaje as number) || 0,
-        modalidad: emp.modalidad as 'mensualizado' | 'jornalizado' | 'quincenal',
+        modalidad: (emp.modalidad as 'mensualizado' | 'jornalizado' | 'quincenal') || modalidad,
         jornada: emp.jornada as 'completa' | 'parcial' | 'por_horas',
         novedades: nov ? {
           dias_trabajados: nov.dias_trabajados as number,
@@ -93,7 +142,8 @@ export default function LiquidacionClient({ company, employees, novelties, payro
           sac_periodo: nov.sac_periodo as boolean,
           ajuste_manual: nov.ajuste_manual as number,
         } : {
-          dias_trabajados: 30, inasistencias_justificadas: 0, inasistencias_injustificadas: 0,
+          dias_trabajados: modalidad === 'jornalizado' ? 25 : 30,
+          inasistencias_justificadas: 0, inasistencias_injustificadas: 0,
           llegadas_tarde: 0, horas_extra_50: 0, horas_extra_100: 0, feriados_trabajados: 0,
           comisiones: 0, premios: 0, adelantos: 0, licencias_pagas_dias: 0,
           licencias_sin_goce_dias: 0, suspensiones_dias: 0, vacaciones_dias: 0,
@@ -101,11 +151,15 @@ export default function LiquidacionClient({ company, employees, novelties, payro
         },
         params: payrollParams,
         additional_non_remunerative: 0,
+        alimentacion_pct,
+        complemento_servicio_pct,
+        fondo_cese_pct,
       })
 
       results.push({ emp, result })
     }
 
+    if (warn.length > 0) setWarnings(warn)
     setPreview(results as Record<string, unknown>[])
     setCalculating(false)
   }
@@ -211,6 +265,14 @@ export default function LiquidacionClient({ company, employees, novelties, payro
     )
   }
 
+  // Empleados sin básico o sin convenio — alerta previa
+  const empSinBasico = employees.filter(emp => {
+    const cat = emp.agreement_categories as Record<string, unknown> | null
+    const s = (cat?.sueldo_basico as number) || (emp.sueldo_basico as number) || 0
+    return s === 0
+  })
+  const empSinConvenio = employees.filter(emp => !emp.agreement_id)
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
@@ -228,6 +290,32 @@ export default function LiquidacionClient({ company, employees, novelties, payro
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-4">❌ {error}</div>
       )}
 
+      {/* Alertas de datos incompletos */}
+      {(empSinConvenio.length > 0 || empSinBasico.length > 0) && !preview && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm mb-4">
+          <p className="font-semibold text-amber-800 mb-1">⚠ Empleados con datos incompletos:</p>
+          {empSinConvenio.map(emp => (
+            <p key={emp.id as string} className="text-amber-700 text-xs">
+              • {emp.apellido as string}, {emp.nombre as string} — sin convenio CCT asignado.{' '}
+              <Link href="/dashboard/empleados" className="underline">Completar legajo</Link>
+            </p>
+          ))}
+          {empSinBasico.filter(emp => emp.agreement_id).map(emp => (
+            <p key={emp.id as string} className="text-amber-700 text-xs">
+              • {emp.apellido as string}, {emp.nombre as string} — categoría sin básico cargado (se liquidará en $0).
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* Warnings del cálculo */}
+      {warnings.length > 0 && preview && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm mb-4">
+          <p className="font-semibold text-amber-800 mb-1">⚠ Avisos del cálculo:</p>
+          {warnings.map((w, i) => <p key={i} className="text-amber-700 text-xs">• {w}</p>)}
+        </div>
+      )}
+
       {/* Configuración */}
       {!preview && (
         <div className="card mb-6">
@@ -242,7 +330,7 @@ export default function LiquidacionClient({ company, employees, novelties, payro
           </div>
           <p className="text-xs text-slate-500 mb-4">
             {employees.length} empleados activos · {periodo}
-            {employees.length === 0 && <span className="text-red-500 ml-1">⚠ Sin empleados</span>}
+            {employees.length === 0 && <span className="text-red-500 ml-1">⚠ Sin empleados activos</span>}
           </p>
           <button
             onClick={handleCalculate}
@@ -259,7 +347,7 @@ export default function LiquidacionClient({ company, employees, novelties, payro
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-slate-800">Previsualización — {tipo} {formatPeriodo(periodo)}</h2>
             <div className="flex gap-2">
-              <button onClick={() => setPreview(null)}
+              <button onClick={() => { setPreview(null); setWarnings([]) }}
                 className="text-sm border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50">
                 ← Modificar
               </button>
@@ -272,9 +360,16 @@ export default function LiquidacionClient({ company, employees, novelties, payro
 
           {(preview as { emp: Record<string, unknown>; result: ReturnType<typeof calcularLiquidacion> }[]).map(({ emp, result }) => (
             <div key={emp.id as string} className="card">
-              <h3 className="font-semibold text-slate-800 mb-3">
-                {emp.apellido as string}, {emp.nombre as string}
-              </h3>
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="font-semibold text-slate-800">
+                  {emp.apellido as string}, {emp.nombre as string}
+                </h3>
+                <div className="text-right text-xs text-slate-400">
+                  {(emp.agreements as Record<string, unknown> | null)?.nombre as string || 'Sin convenio'}
+                  {' · '}
+                  {(emp.agreement_categories as Record<string, unknown> | null)?.nombre as string || emp.categoria as string || 'Sin categoría'}
+                </div>
+              </div>
               <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-3">
                 <div className="bg-green-50 rounded-lg p-2 text-center">
                   <div className="text-xs text-green-600">Bruto</div>

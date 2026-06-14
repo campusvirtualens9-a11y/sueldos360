@@ -16,8 +16,8 @@ export interface PayrollParams {
   art_pct: number                  // variable
 
   // Parámetros de jornada
-  dias_base: number             // 30
-  horas_mensuales: number       // 200
+  dias_base: number             // 30 (mensual) o 25 (jornalizado)
+  horas_mensuales: number       // 200 o 176 (construcción)
   hora_extra_50_factor: number  // 1.5
   hora_extra_100_factor: number // 2.0
   valor_hora_extra_base: string // 'basico' | 'bruto'
@@ -45,13 +45,17 @@ export interface NovedadInput {
 export interface EmployeePayrollInput {
   sueldo_basico: number
   antiguedad_anios: number
-  antiguedad_pct: number         // % por año de convenio (ej: 1% x año)
+  antiguedad_pct: number         // % por año de convenio (ej: 1% x año / 2% Sanidad)
   presentismo_pct: number
   modalidad: 'mensualizado' | 'jornalizado' | 'quincenal'
   jornada: 'completa' | 'parcial' | 'por_horas'
   novedades: NovedadInput
   params: PayrollParams
   additional_non_remunerative: number  // SNR del convenio
+  // Adicionales CCT específicos (opcionales, default 0)
+  alimentacion_pct?: number          // Gastronomía UTHGRA: 10% sobre básico
+  complemento_servicio_pct?: number  // Gastronomía UTHGRA: 12% sobre básico
+  fondo_cese_pct?: number            // Construcción UOCRA: 12% 1er año, 8% desde 2do (patronal)
 }
 
 export interface PayrollLineItem {
@@ -82,28 +86,36 @@ export interface PayrollCalculationResult {
   contrib_pami: number
   contrib_fne: number
   contrib_art: number
+  contrib_fondo_cese: number
   total_contribuciones_patronales: number
   costo_laboral_total: number
 }
 
 export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalculationResult {
-  const { sueldo_basico, antiguedad_anios, antiguedad_pct, presentismo_pct,
-    novedades, params, additional_non_remunerative } = input
+  const {
+    sueldo_basico, antiguedad_anios, antiguedad_pct, presentismo_pct,
+    modalidad, novedades, params, additional_non_remunerative,
+    alimentacion_pct = 0, complemento_servicio_pct = 0, fondo_cese_pct = 0,
+  } = input
 
   const items: PayrollLineItem[] = []
 
   // 1. Sueldo básico proporcional
+  // Jornalizado usa divisor 25 (jornal × 25 = referencia mensual)
+  // Mensualizado y quincenal usan dias_base (30)
+  const divisor = modalidad === 'jornalizado' ? 25 : params.dias_base
   const dias_base = params.dias_base
   const dias_trab = novedades.dias_trabajados
-  const sueldo_basico_prop = (sueldo_basico / dias_base) * dias_trab
+  const sueldo_basico_prop = (sueldo_basico / divisor) * dias_trab
 
   items.push({
     codigo: '001', nombre: 'Sueldo básico',
     tipo: 'remunerativo', importe: sueldo_basico_prop,
-    cantidad: dias_trab, valor_unitario: sueldo_basico / dias_base
+    cantidad: dias_trab, valor_unitario: sueldo_basico / divisor
   })
 
   // 2. Adicional antigüedad
+  // Sanidad CCT 122/75: 2% por año (art. 10). Comercio, Camioneros: 1% por año.
   let adicional_antiguedad = 0
   if (antiguedad_anios > 0 && antiguedad_pct > 0) {
     adicional_antiguedad = sueldo_basico_prop * (antiguedad_pct / 100) * antiguedad_anios
@@ -113,7 +125,8 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
     })
   }
 
-  // 3. Presentismo
+  // 3. Presentismo / Asistencia perfecta
+  // Comercio art. 40: 8.33% | Gastronomía: 10% | Construcción: 20% | Camioneros: 5%
   let adicional_presentismo = 0
   if (presentismo_pct > 0 && novedades.inasistencias_injustificadas === 0 && novedades.llegadas_tarde === 0) {
     adicional_presentismo = sueldo_basico_prop * (presentismo_pct / 100)
@@ -123,71 +136,91 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
     })
   }
 
-  // 4. Horas extra al 50%
+  // 4. Alimentación — Gastronomía UTHGRA (art. CCT 389/04)
+  let adicional_alimentacion = 0
+  if (alimentacion_pct > 0) {
+    adicional_alimentacion = sueldo_basico_prop * (alimentacion_pct / 100)
+    items.push({
+      codigo: '004', nombre: `Alimentación (${alimentacion_pct}%)`,
+      tipo: 'remunerativo', importe: adicional_alimentacion
+    })
+  }
+
+  // 5. Complemento de servicio — Gastronomía UTHGRA (art. CCT 389/04)
+  let adicional_complemento = 0
+  if (complemento_servicio_pct > 0) {
+    adicional_complemento = sueldo_basico_prop * (complemento_servicio_pct / 100)
+    items.push({
+      codigo: '005', nombre: `Complemento de servicio (${complemento_servicio_pct}%)`,
+      tipo: 'remunerativo', importe: adicional_complemento
+    })
+  }
+
+  // 6. Horas extra al 50%
   let horas_extra_50_importe = 0
   if (novedades.horas_extra_50 > 0) {
     const valor_hora = sueldo_basico / params.horas_mensuales
     horas_extra_50_importe = novedades.horas_extra_50 * valor_hora * params.hora_extra_50_factor
     items.push({
-      codigo: '004', nombre: 'Horas extra 50%',
+      codigo: '006', nombre: 'Horas extra 50%',
       tipo: 'remunerativo', importe: horas_extra_50_importe,
       cantidad: novedades.horas_extra_50, valor_unitario: valor_hora * params.hora_extra_50_factor
     })
   }
 
-  // 5. Horas extra al 100%
+  // 7. Horas extra al 100%
   let horas_extra_100_importe = 0
   if (novedades.horas_extra_100 > 0) {
     const valor_hora = sueldo_basico / params.horas_mensuales
     horas_extra_100_importe = novedades.horas_extra_100 * valor_hora * params.hora_extra_100_factor
     items.push({
-      codigo: '005', nombre: 'Horas extra 100%',
+      codigo: '007', nombre: 'Horas extra 100%',
       tipo: 'remunerativo', importe: horas_extra_100_importe,
       cantidad: novedades.horas_extra_100, valor_unitario: valor_hora * params.hora_extra_100_factor
     })
   }
 
-  // 6. Feriados trabajados
+  // 8. Feriados trabajados
   let feriados_importe = 0
   if (novedades.feriados_trabajados > 0) {
     const valor_dia = sueldo_basico / dias_base
     feriados_importe = novedades.feriados_trabajados * valor_dia * 2
     items.push({
-      codigo: '006', nombre: 'Feriados trabajados (doble)',
+      codigo: '008', nombre: 'Feriados trabajados (doble)',
       tipo: 'remunerativo', importe: feriados_importe,
       cantidad: novedades.feriados_trabajados
     })
   }
 
-  // 7. Comisiones
+  // 9. Comisiones
   if (novedades.comisiones > 0) {
     items.push({
-      codigo: '007', nombre: 'Comisiones',
+      codigo: '009', nombre: 'Comisiones',
       tipo: 'remunerativo', importe: novedades.comisiones
     })
   }
 
-  // 8. Premios
+  // 10. Premios
   if (novedades.premios > 0) {
     items.push({
-      codigo: '008', nombre: 'Premios',
+      codigo: '010', nombre: 'Premios',
       tipo: 'remunerativo', importe: novedades.premios
     })
   }
 
-  // 9. Ajuste manual
+  // 11. Ajuste manual
   if (novedades.ajuste_manual !== 0) {
     items.push({
-      codigo: '009', nombre: 'Ajuste manual',
+      codigo: '011', nombre: 'Ajuste manual',
       tipo: novedades.ajuste_manual > 0 ? 'remunerativo' : 'descuento',
       importe: Math.abs(novedades.ajuste_manual)
     })
   }
 
-  // 10. Suma no remunerativa del convenio
+  // 12. Suma no remunerativa del convenio
   if (additional_non_remunerative > 0) {
     items.push({
-      codigo: '010', nombre: 'Suma no remunerativa (convenio)',
+      codigo: '012', nombre: 'Suma no remunerativa (convenio)',
       tipo: 'no_remunerativo', importe: additional_non_remunerative
     })
   }
@@ -223,7 +256,7 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
 
   const sueldo_bruto = total_remunerativo + total_no_remunerativo - descuento_inasistencias - novedades.adelantos
 
-  // Aportes del trabajador (sobre remunerativo bruto)
+  // Aportes del trabajador (sobre total remunerativo neto de inasistencias)
   const base_aportes = total_remunerativo - descuento_inasistencias
   const aportes_jubilacion = base_aportes * (params.jubilacion_pct / 100)
   const aportes_obra_social = base_aportes * (params.obra_social_pct / 100)
@@ -247,7 +280,18 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
   const contrib_pami = base_aportes * (params.pami_patronal_pct / 100)
   const contrib_fne = base_aportes * (params.fne_pct / 100)
   const contrib_art = sueldo_bruto * (params.art_pct / 100)
-  const total_contribuciones_patronales = contrib_jubilacion + contrib_obra_social + contrib_pami + contrib_fne + contrib_art
+  // Fondo de Cese Laboral — Construcción CCT 76/75 (12% 1er año, 8% desde 2do)
+  const contrib_fondo_cese = fondo_cese_pct > 0 ? base_aportes * (fondo_cese_pct / 100) : 0
+
+  const total_contribuciones_patronales =
+    contrib_jubilacion + contrib_obra_social + contrib_pami + contrib_fne + contrib_art + contrib_fondo_cese
+
+  if (contrib_fondo_cese > 0) {
+    items.push({
+      codigo: 'CP06', nombre: `Fondo de Cese Laboral (${fondo_cese_pct}%)`,
+      tipo: 'contribucion_patronal', importe: contrib_fondo_cese
+    })
+  }
 
   const costo_laboral_total = sueldo_bruto + total_contribuciones_patronales
 
@@ -270,6 +314,7 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
     contrib_pami,
     contrib_fne,
     contrib_art,
+    contrib_fondo_cese,
     total_contribuciones_patronales,
     costo_laboral_total,
   }

@@ -20,6 +20,7 @@ export default async function LiquidacionPage() {
     { data: rawEmployees },
     { data: allAgreements },
     { data: allCategories },
+    { data: allAdditionals },
   ] = await (company
     ? Promise.all([
         supabase
@@ -30,18 +31,22 @@ export default async function LiquidacionPage() {
           .order('apellido'),
         supabase
           .from('agreements')
-          .select('id, nombre, numero_cct, antiguedad_porcentaje, presentismo_porcentaje'),
+          .select('id, codigo, nombre, numero_cct, tipo_liquidacion, jornada_estandar_horas, antiguedad_porcentaje, presentismo_porcentaje, aporte_sindical_porcentaje'),
         supabase
           .from('agreement_categories')
-          .select('id, nombre, sueldo_basico'),
+          .select('id, nombre, sueldo_basico, horas_referencia'),
+        supabase
+          .from('agreement_additionals')
+          .select('agreement_id, nombre, valor, is_remunerativo'),
       ])
     : Promise.all([
         Promise.resolve({ data: [] as Record<string, unknown>[] }),
         Promise.resolve({ data: [] as Record<string, unknown>[] }),
         Promise.resolve({ data: [] as Record<string, unknown>[] }),
+        Promise.resolve({ data: [] as Record<string, unknown>[] }),
       ]))
 
-  // Merge manual: enriquecer cada empleado con sus datos de CCT y categoría
+  // Merge manual: enriquecer cada empleado con sus datos de CCT, categoría y adicionales
   const employees = (rawEmployees || []).map(emp => ({
     ...emp,
     agreements: allAgreements?.find(a => a.id === emp.agreement_id) ?? null,
@@ -77,6 +82,7 @@ export default async function LiquidacionPage() {
       payrollRuns={payrollRuns || []}
       periodo={periodo}
       userId={user!.id}
+      additionals={allAdditionals || []}
     />
   )
 }
