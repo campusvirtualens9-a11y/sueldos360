@@ -144,15 +144,27 @@
 - Viáticos Camioneros junio 2026
 - Parámetros legales generales (jubilación 11%, obra social 3%, PAMI 3%)
 
+### Verificados y actualizados en migración 007 ✓ (2026-06-14)
+- **Construcción UOCRA** — jornales junio 2026 (2do tramo paritario, fuente: caede.com.ar, jorgevega.com.ar):
+  | Código | Jornal jun 2026 | Mensual ref. | Hora |
+  |---|---|---|---|
+  | CON-AYU-A | $4.948/día | $123.700 | $618,50 |
+  | CON-MED-A | $5.375/día | $134.375 | $671,88 |
+  | CON-OFI-A | $5.817/día | $145.425 | $727,13 |
+  | CON-OE-A  | $6.800/día | $170.000 | $850,00 |
+  | CON-SER-A | — | $881.193 (mensual) | n/a |
+  Incremento efectivo ~11% sobre mayo 2026 (2.1% base + absorción parcial SNR mayo).
+- **Camioneros** — Premio Presentismo $60.000 remunerativo (desde abr 2026, fuente: sindicatos.com.ar / blog.aconpy.com).
+  NO es porcentaje: `presentismo_porcentaje = NULL` es correcto. Agregado como `agreement_additionals`.
+
 ### Revisión manual requerida ⚠️
-- Todos los básicos de Construcción (mayo 2026, sin junio localizado)
-- Todos los básicos de Gastronomía (escala UTHGRA CABA — verificar interior)
-- Plus CABA Gastronomía (15%)
-- Todos los básicos de Sanidad (abril 2026 — pendiente revisión post-mayo)
-- Antigüedad Gastronomía (rango 1%-14% sin tabla anual completa)
-- Presentismo Sanidad (8% — porcentaje referencial)
-- Presentismo Camioneros (NULL — no encontrado en planilla general)
-- Viático larga distancia Camioneros (por km — requiere gestión manual)
+- **Sanidad CCT 122/75** — revisión mayo 2026 comprometida pero NO publicada al 14/06/2026. Los valores de abril 2026 son los más recientes. Monitorear sanidad.org.ar / atsa.org.ar
+- **Gastronomía CCT 389/04** — acuerdo abr-jun 2026 firmado, pero tabla P1-P7 por sub-escala completa no disponible en fuentes públicas. Confirmados parcialmente: P1 privado $1.346.143, P4 ≈$1.565.000, P7 ≈$2.298.392. Obtener Anexo I del acuerdo UTHGRA-FEHGRA.
+- **Plus CABA Gastronomía** — 15% adicional solo para CABA; sin cambios
+- **Antigüedad Gastronomía** — rango 1%-14% sin tabla anual completa; sin cambios
+- **Presentismo Sanidad** — 8% referencial; sin datos oficiales para modificar
+- **UOCRA SNR junio 2026** — SNR residual del 2do tramo no confirmado en fuentes secundarias; verificar con planilla oficial UOCRA
+- **Viático larga distancia Camioneros** — $80,09/km (mayo 2026), ajustar cuando salga revisión de junio
 
 ---
 
