@@ -21,6 +21,7 @@ export default async function LiquidacionPage() {
     { data: allAgreements },
     { data: allCategories },
     { data: allAdditionals },
+    { data: allNrItems },
   ] = await (company
     ? Promise.all([
         supabase
@@ -38,8 +39,13 @@ export default async function LiquidacionPage() {
         supabase
           .from('agreement_additionals')
           .select('agreement_id, nombre, valor, is_remunerativo'),
+        // Sumas no remunerativas vigentes (convenio y/o categoría)
+        supabase
+          .from('agreement_non_remunerative_items')
+          .select('agreement_id, category_id, concepto, monto, vigencia_desde, vigencia_hasta, requires_manual_review'),
       ])
     : Promise.all([
+        Promise.resolve({ data: [] as Record<string, unknown>[] }),
         Promise.resolve({ data: [] as Record<string, unknown>[] }),
         Promise.resolve({ data: [] as Record<string, unknown>[] }),
         Promise.resolve({ data: [] as Record<string, unknown>[] }),
@@ -83,6 +89,7 @@ export default async function LiquidacionPage() {
       periodo={periodo}
       userId={user!.id}
       additionals={allAdditionals || []}
+      nrItems={allNrItems || []}
     />
   )
 }

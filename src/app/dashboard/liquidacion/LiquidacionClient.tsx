@@ -15,9 +15,10 @@ interface Props {
   periodo: string
   userId: string
   additionals: Record<string, unknown>[]
+  nrItems: Record<string, unknown>[]
 }
 
-export default function LiquidacionClient({ company, employees, novelties, payrollRuns, periodo, userId, additionals }: Props) {
+export default function LiquidacionClient({ company, employees, novelties, payrollRuns, periodo, userId, additionals, nrItems }: Props) {
   const supabase = createClient()
   const router = useRouter()
   const [tipo, setTipo] = useState<'mensual' | 'quincenal' | 'sac' | 'vacaciones'>('mensual')
@@ -43,13 +44,31 @@ export default function LiquidacionClient({ company, employees, novelties, payro
     return match ? (match.valor as number) || 0 : 0
   }
 
+  // Sumar sumas no remunerativas vigentes para un empleado (por convenio y/o categoría)
+  // Filtra por vigencia si tiene fechas, de lo contrario suma todos
+  function getNrTotal(agreementId: string | null, categoryId: string | null): number {
+    if (!agreementId) return 0
+    const today = new Date().toISOString().slice(0, 10)
+    return nrItems
+      .filter(item => {
+        if (item.agreement_id !== agreementId) return false
+        // Si tiene category_id, debe coincidir; si es null, aplica a todos del convenio
+        if (item.category_id !== null && item.category_id !== categoryId) return false
+        // Filtro de vigencia
+        if (item.vigencia_desde && String(item.vigencia_desde) > today) return false
+        if (item.vigencia_hasta && String(item.vigencia_hasta) < today) return false
+        return true
+      })
+      .reduce((acc, item) => acc + ((item.monto as number) || 0), 0)
+  }
+
   function buildPayrollParams(agreement: Record<string, unknown> | null) {
     // Tipo de liquidación del CCT determina el divisor y las horas
     const tipoLiq = (agreement?.tipo_liquidacion as string) || 'mensual'
     const modalidad: 'mensualizado' | 'jornalizado' | 'quincenal' =
       tipoLiq === 'jornal' ? 'jornalizado' : tipoLiq === 'quincenal' ? 'quincenal' : 'mensualizado'
 
-    // Horas del CCT (Construcción: 176, resto: 200)
+    // Horas del CCT: Construcción=176, Camioneros=192 (FedCam: mensual/24/8), resto=200
     const horas = (agreement?.jornada_estandar_horas as number) || getParam('HORAS_MENSUALES', 200)
 
     // Aporte sindical desde el CCT, fallback parámetros empresa
@@ -117,6 +136,9 @@ export default function LiquidacionClient({ company, employees, novelties, payro
         fondo_cese_pct = antiguedadAnios < 1 ? 12 : 8
       }
 
+      // Sumas no remunerativas desde la DB (viáticos, SNR convenio, etc.)
+      const nr_total = getNrTotal(agreementId, emp.agreement_category_id as string | null)
+
       const result = calcularLiquidacion({
         sueldo_basico: sueldo,
         antiguedad_anios: antiguedadAnios,
@@ -150,7 +172,7 @@ export default function LiquidacionClient({ company, employees, novelties, payro
           sac_periodo: false, ajuste_manual: 0,
         },
         params: payrollParams,
-        additional_non_remunerative: 0,
+        additional_non_remunerative: nr_total,
         alimentacion_pct,
         complemento_servicio_pct,
         fondo_cese_pct,

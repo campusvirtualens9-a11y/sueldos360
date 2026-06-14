@@ -101,12 +101,18 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
   const items: PayrollLineItem[] = []
 
   // 1. Sueldo básico proporcional
-  // Jornalizado usa divisor 25 (jornal × 25 = referencia mensual)
+  // Jornalizado usa divisor 25 (sueldo_basico almacenado = jornal × 25)
+  // → jornal diario = sueldo_basico / 25; valor_hora = jornal / 8 = sueldo_basico / 200
   // Mensualizado y quincenal usan dias_base (30)
   const divisor = modalidad === 'jornalizado' ? 25 : params.dias_base
   const dias_base = params.dias_base
   const dias_trab = novedades.dias_trabajados
   const sueldo_basico_prop = (sueldo_basico / divisor) * dias_trab
+
+  // valor_hora para horas extra:
+  // jornalizado → jornal/8 = sueldo_basico/(25×8) = sueldo_basico/200
+  // mensualizado → sueldo_basico / horas_mensuales (ej: 200 para Comercio, 192 para Camioneros)
+  const horas_divisor_extra = modalidad === 'jornalizado' ? 200 : params.horas_mensuales
 
   items.push({
     codigo: '001', nombre: 'Sueldo básico',
@@ -157,9 +163,10 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
   }
 
   // 6. Horas extra al 50%
+  // Valor hora: jornalizado = sueldo/200 (jornal/8); mensualizado = sueldo/horas_mensuales
   let horas_extra_50_importe = 0
   if (novedades.horas_extra_50 > 0) {
-    const valor_hora = sueldo_basico / params.horas_mensuales
+    const valor_hora = sueldo_basico / horas_divisor_extra
     horas_extra_50_importe = novedades.horas_extra_50 * valor_hora * params.hora_extra_50_factor
     items.push({
       codigo: '006', nombre: 'Horas extra 50%',
@@ -171,7 +178,7 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
   // 7. Horas extra al 100%
   let horas_extra_100_importe = 0
   if (novedades.horas_extra_100 > 0) {
-    const valor_hora = sueldo_basico / params.horas_mensuales
+    const valor_hora = sueldo_basico / horas_divisor_extra
     horas_extra_100_importe = novedades.horas_extra_100 * valor_hora * params.hora_extra_100_factor
     items.push({
       codigo: '007', nombre: 'Horas extra 100%',
@@ -181,9 +188,10 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
   }
 
   // 8. Feriados trabajados
+  // Valor día: jornalizado usa divisor 25 (jornal diario); mensualizado usa dias_base (30)
   let feriados_importe = 0
   if (novedades.feriados_trabajados > 0) {
-    const valor_dia = sueldo_basico / dias_base
+    const valor_dia = sueldo_basico / divisor
     feriados_importe = novedades.feriados_trabajados * valor_dia * 2
     items.push({
       codigo: '008', nombre: 'Feriados trabajados (doble)',
@@ -235,9 +243,10 @@ export function calcularLiquidacion(input: EmployeePayrollInput): PayrollCalcula
     .reduce((acc, i) => acc + i.importe, 0)
 
   // Descuento por inasistencias injustificadas
+  // Jornalizado usa divisor 25 (jornal diario); mensualizado usa dias_base (30)
   let descuento_inasistencias = 0
   if (novedades.inasistencias_injustificadas > 0) {
-    const valor_dia = sueldo_basico / dias_base
+    const valor_dia = sueldo_basico / divisor
     descuento_inasistencias = novedades.inasistencias_injustificadas * valor_dia
     items.push({
       codigo: 'D01', nombre: 'Descuento inasistencias injustificadas',
