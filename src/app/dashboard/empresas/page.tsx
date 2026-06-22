@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
+import { TributarSyncCard } from './TributarSyncCard'
 
 export default async function EmpresasPage() {
   const supabase = await createClient()
@@ -58,52 +59,37 @@ export default async function EmpresasPage() {
                     <p className="text-xs text-slate-400 mt-0.5">CUIT: {company.cuit}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {company.is_active && (
-                    <span className="badge badge-green text-xs">Activa</span>
-                  )}
-                  {company.condicion_mipyme && (
-                    <span className="badge badge-blue text-xs">MiPyME</span>
-                  )}
+                <div className="flex gap-2">
+                  <Link href={`/dashboard/empresas/${company.id}`}
+                    className="text-xs text-slate-500 hover:text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">
+                    Editar
+                  </Link>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-100 text-sm">
-                <div>
-                  <p className="text-xs text-slate-400">Actividad</p>
-                  <p className="text-slate-700 font-medium">{company.actividad_principal || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Provincia</p>
-                  <p className="text-slate-700 font-medium">{company.provincia}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Inicio actividad</p>
-                  <p className="text-slate-700 font-medium">{formatDate(company.fecha_inicio_actividad)}</p>
-                </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
+                <span>Actividad: {company.actividad_principal || '—'}</span>
+                <span>Provincia: {company.provincia}</span>
+                <span>MiPyME: {company.condicion_mipyme ? 'Sí' : 'No'}</span>
+                <span>Activa desde: {company.fecha_inicio_actividad ? formatDate(company.fecha_inicio_actividad) : '—'}</span>
               </div>
-              <div className="flex gap-2 mt-4">
-                <Link href={`/dashboard/empresas/${company.id}`}
-                  className="text-xs bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors font-medium">
-                  Ver / Editar
-                </Link>
-                <Link href={`/dashboard/legajos?empresa=${company.id}`}
-                  className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors font-medium">
-                  Ver legajos
-                </Link>
-              </div>
+
+              {/* Código de sincronización con TRIBUT.AR */}
+              <TributarSyncCard
+                token={(company as any).sync_token ?? null}
+                companyName={company.razon_social}
+              />
             </div>
           ))}
         </div>
       ) : (
-        <div className="card text-center py-16">
-          <div className="text-5xl mb-4">🏢</div>
-          <h3 className="text-lg font-semibold text-slate-700 mb-2">No hay empresas creadas</h3>
-          <p className="text-slate-500 text-sm mb-6">
-            Comenzá creando tu primera empresa para practicar el circuito de liquidación.
-          </p>
+        <div className="text-center py-12 text-slate-400">
+          <p className="text-4xl mb-3">🏢</p>
+          <p className="font-medium">Todavía no cargaste ninguna empresa</p>
+          <p className="text-sm mt-1">Creá tu primera empresa para comenzar a liquidar sueldos</p>
           <Link href="/dashboard/empresas/nueva"
-            className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors">
-            Crear primera empresa
+            className="inline-block mt-4 bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700">
+            + Crear empresa
           </Link>
         </div>
       )}
