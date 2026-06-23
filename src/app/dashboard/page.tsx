@@ -134,7 +134,7 @@ export default async function DashboardPage() {
 
       {/* KPIs */}
       {company && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: 'Empleados activos', value: String(employeeCount || 0), icon: '👥', color: 'blue' },
             { label: 'Última liquidación bruta', value: lastPayrolls?.[0] ? formatCurrency(lastPayrolls[0].total_bruto) : '—', icon: '💰', color: 'green' },
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
         <div className="progress-bar mb-4">
           <div className="progress-fill" style={{ width: `${progressPct}%` }} />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
           {CIRCUIT_STEPS.map((step, i) => {
             const done = stepsDone[i]
             return (
@@ -183,7 +183,7 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Últimas liquidaciones */}
         <div className="card">
           <h3 className="text-sm font-semibold text-slate-700 mb-3">📋 Últimas liquidaciones</h3>

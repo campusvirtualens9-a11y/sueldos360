@@ -123,7 +123,7 @@ export default function NuevoEmpleadoPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <div className="card">
           <h2 className="text-sm font-bold text-slate-700 mb-4">Datos personales</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               { name: 'cuil', label: 'CUIL *', placeholder: '20-12345678-1', required: true },
               { name: 'dni', label: 'DNI *', placeholder: '12345678', required: true },
@@ -158,7 +158,7 @@ export default function NuevoEmpleadoPage() {
 
         <div className="card">
           <h2 className="text-sm font-bold text-slate-700 mb-4">Datos laborales</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Fecha ingreso *</label>
               <input type="date" name="fecha_ingreso" required value={form.fecha_ingreso} onChange={handleChange}

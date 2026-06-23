@@ -127,7 +127,7 @@ export default function NuevaEmpresaPage() {
       <form onSubmit={handleSubmit} className="card flex flex-col gap-5">
         <h2 className="text-sm font-semibold text-slate-700 pb-2 border-b border-slate-100">Datos fiscales</h2>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">CUIT *</label>
             <input name="cuit" required value={form.cuit} onChange={handleChange}
@@ -142,7 +142,7 @@ export default function NuevaEmpresaPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Nombre de fantasía</label>
             <input name="nombre_fantasia" value={form.nombre_fantasia} onChange={handleChange}
@@ -168,7 +168,7 @@ export default function NuevaEmpresaPage() {
         </div>
 
         <h2 className="text-sm font-semibold text-slate-700 pb-2 border-b border-slate-100 mt-2">Domicilio</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="block text-xs font-medium text-slate-600 mb-1">Domicilio fiscal</label>
             <input name="domicilio_fiscal" value={form.domicilio_fiscal} onChange={handleChange}
@@ -191,7 +191,7 @@ export default function NuevaEmpresaPage() {
         </div>
 
         <h2 className="text-sm font-semibold text-slate-700 pb-2 border-b border-slate-100 mt-2">Contacto y otros</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Teléfono</label>
             <input name="telefono" value={form.telefono} onChange={handleChange}

@@ -76,6 +76,7 @@ export default async function LegajosPage() {
 
       {employees && employees.length > 0 && (
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="table-base">
             <thead>
               <tr>
@@ -130,6 +131,7 @@ export default async function LegajosPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
