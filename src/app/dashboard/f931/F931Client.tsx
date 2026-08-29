@@ -47,13 +47,26 @@ export default function F931Client({ company, closedRuns, existingReports, userI
     const art = totals.total_remuneraciones * 0.015
     const total_general = totals.total_aportes + totals.total_contribuciones
 
-    await supabase.from('f931_reports').insert([{
+    // La cantidad de empleados sale de los resultados de la liquidación:
+    // payroll_runs no tiene una columna cantidad_empleados, así que sumarla
+    // daba siempre 0 y el F.931 se presentaba con "0 empleados declarados"
+    // junto a un total de remuneraciones que no era cero.
+    const runIds = runsForPeriod.map(r => r.id as string)
+    const { data: resultados } = await supabase
+      .from('payroll_results')
+      .select('employee_id')
+      .in('payroll_run_id', runIds)
+    const cantidadEmpleados = new Set(
+      (resultados ?? []).map(r => (r as Record<string, unknown>).employee_id as string),
+    ).size
+
+    const datos = {
       company_id: (company as Record<string, unknown>).id,
       periodo: selectedPeriodo,
-      payroll_run_ids: runsForPeriod.map(r => r.id),
+      payroll_run_ids: runIds,
       cuit_empresa: (company as Record<string, unknown>).cuit,
       razon_social: (company as Record<string, unknown>).razon_social,
-      cantidad_empleados: runsForPeriod.reduce((acc, r) => acc + (r.cantidad_empleados as number || 0), 0),
+      cantidad_empleados: cantidadEmpleados,
       total_remuneraciones: totals.total_remuneraciones,
       total_aportes_jubilatorios: aportes_jub,
       total_obra_social: aportes_os,
@@ -62,8 +75,26 @@ export default function F931Client({ company, closedRuns, existingReports, userI
       total_contribuciones_patronales: totals.total_contribuciones,
       art_monto: art,
       total_general,
-      status: 'borrador',
-    }])
+    }
+
+    // Un período tiene un solo F.931. Antes cada clic en "Generar" insertaba
+    // otro, y quedaban declaraciones duplicadas para el mismo mes. Si ya
+    // existe, se actualiza; el estado (borrador / presentado / pagado) no se
+    // pisa, para no dar por no presentada una que ya se presentó.
+    const { data: existentes } = await supabase
+      .from('f931_reports')
+      .select('id')
+      .eq('company_id', (company as Record<string, unknown>).id as string)
+      .eq('periodo', selectedPeriodo)
+      .order('created_at', { ascending: true })
+      .limit(1)
+
+    const existente = existentes?.[0] as { id: string } | undefined
+    if (existente) {
+      await supabase.from('f931_reports').update(datos).eq('id', existente.id)
+    } else {
+      await supabase.from('f931_reports').insert([{ ...datos, status: 'borrador' }])
+    }
 
     await unlockAchievement(supabase, userId, (company as Record<string, unknown>).id as string, 'F931_GENERADO')
 
