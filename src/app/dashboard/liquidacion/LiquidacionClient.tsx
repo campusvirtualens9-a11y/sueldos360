@@ -224,9 +224,11 @@ export default function LiquidacionClient({ company, employees, novelties, payro
       return
     }
 
+    const fallidos: string[] = []
+
     // Guardar resultados por empleado
     for (const { emp, result } of preview as { emp: Record<string, unknown>; result: ReturnType<typeof calcularLiquidacion> }[]) {
-      const { data: empResult } = await supabase
+      const { data: empResult, error: errResult } = await supabase
         .from('payroll_results')
         .insert([{
           payroll_run_id: run.id,
@@ -245,9 +247,15 @@ export default function LiquidacionClient({ company, employees, novelties, payro
         .select()
         .single()
 
-      if (empResult) {
+      const quien = [emp.apellido, emp.nombre].filter(Boolean).join(', ') || 'empleado sin nombre'
+
+      if (errResult || !empResult) {
+        // Antes esto se salteaba en silencio: la liquidación quedaba cerrada
+        // y ese empleado sin resultado, sin ítems y sin recibo, sin avisar.
+        fallidos.push(`${quien}: ${errResult?.message ?? 'no se pudo guardar el resultado'}`)
+      } else {
         // Guardar ítems
-        await supabase.from('payroll_result_items').insert(
+        const { error: errItems } = await supabase.from('payroll_result_items').insert(
           result.items.map((item, i) => ({
             payroll_result_id: empResult.id,
             concept_codigo: item.codigo,
@@ -260,16 +268,29 @@ export default function LiquidacionClient({ company, employees, novelties, payro
             orden: i,
           }))
         )
+        if (errItems) fallidos.push(`${quien}: los conceptos del recibo no se guardaron (${errItems.message})`)
 
         // Crear recibo
-        await supabase.from('payslips').insert([{
+        const { error: errRecibo } = await supabase.from('payslips').insert([{
           payroll_result_id: empResult.id,
           company_id: (company as Record<string, unknown>).id as string,
           employee_id: emp.id as string,
           periodo,
           fecha_pago: new Date().toISOString().split('T')[0],
         }])
+        if (errRecibo) fallidos.push(`${quien}: el recibo no se creó (${errRecibo.message})`)
       }
+    }
+
+    // Si algo falló, no se navega: el docente tiene que enterarse de que la
+    // liquidación quedó incompleta, en vez de ver una lista de recibos a medias.
+    if (fallidos.length > 0) {
+      setError(
+        `La liquidación se cerró pero ${fallidos.length} empleado(s) quedaron incompletos. ` +
+        fallidos.join(' | ')
+      )
+      setClosing(false)
+      return
     }
 
     const companyId = (company as Record<string, unknown>).id as string
